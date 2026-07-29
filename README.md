@@ -104,6 +104,26 @@ python scripts/train.py --config configs/train.example.json
 
 番号付きチェックポイントを残す場合は、学習設定の`keep_numbered_checkpoints`を`true`にします。既定では`latest.pt`だけを更新します。
 
+### 進捗と再開
+
+`log_every_steps`で指定した更新間隔ごとに、現在のエポックとバッチ、全体更新数、進捗率、直近loss、平均更新時間、エポック内ETA、学習全体のETAを表示します。
+
+9フォント基準実験を最初から始める場合:
+
+```bash
+python scripts/train.py --config configs/train.nine-font-baseline.json
+```
+
+既存のチェックポイントから再開する場合:
+
+```bash
+python scripts/train.py \
+  --config configs/train.nine-font-baseline.json \
+  --resume outputs/nine-font-baseline-64/latest.pt
+```
+
+再開時はcheckpointに保存されたepoch、モデル、EMAモデル、optimizer、mixed precision scaler、更新数を復元します。
+
 ## 生成
 
 学習済みチェックポイントから、決定論的DDIMで全条件を生成します。
