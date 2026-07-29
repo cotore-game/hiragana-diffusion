@@ -55,6 +55,34 @@ def load_label_font(size: int) -> ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
+def load_sampling_bundle(
+    payload: dict[str, object],
+    use_ema: bool,
+) -> tuple[dict[str, object], dict[str, torch.Tensor], tuple[str, ...], int, str]:
+    if int(payload.get("format_version", 0)) == 1:
+        if use_ema:
+            raise ValueError(
+                "inference-only archives contain one weight set; "
+                "do not specify --ema-model"
+            )
+        return (
+            dict(payload["model_arguments"]),
+            dict(payload["state_dict"]),
+            tuple(payload["condition_names"]),
+            int(payload["diffusion_timesteps"]),
+            str(payload["weights"]),
+        )
+
+    state_key = "ema_model" if use_ema else "model"
+    return (
+        dict(payload["model_arguments"]),
+        dict(payload[state_key]),
+        tuple(payload["styles"]),
+        int(dict(payload["config"])["timesteps"]),
+        state_key,
+    )
+
+
 def to_images(tensor: torch.Tensor) -> list[Image.Image]:
     arrays = (
         ((tensor.clamp(-1.0, 1.0) + 1.0) * 127.5)
@@ -119,18 +147,23 @@ def save_outputs(
 def main() -> None:
     arguments = parse_arguments()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    checkpoint = torch.load(
+    payload = torch.load(
         arguments.checkpoint,
         map_location=device,
         weights_only=False,
     )
-    model = ConditionalUNet(**checkpoint["model_arguments"]).to(device)
-    state_key = "ema_model" if arguments.ema_model else "model"
-    model.load_state_dict(checkpoint[state_key])
+    (
+        model_arguments,
+        state_dict,
+        styles,
+        diffusion_timesteps,
+        weight_name,
+    ) = load_sampling_bundle(payload, arguments.ema_model)
+    model = ConditionalUNet(**model_arguments).to(device)
+    model.load_state_dict(state_dict)
     model.eval()
 
-    styles = tuple(checkpoint["styles"])
-    character_count = int(checkpoint["model_arguments"]["character_count"])
+    character_count = int(model_arguments["character_count"])
     if character_count != len(HIRAGANA):
         raise ValueError(
             f"checkpoint expects {character_count} characters, "
@@ -152,12 +185,9 @@ def main() -> None:
         character_count
     )
 
-    diffusion = GaussianDiffusion(
-        int(checkpoint["config"]["timesteps"]),
-        device,
-    )
+    diffusion = GaussianDiffusion(diffusion_timesteps, device)
     print(
-        f"device={device} model={state_key} samples={len(initial_noise)} "
+        f"device={device} model={weight_name} samples={len(initial_noise)} "
         f"steps={arguments.steps}"
     )
     generated = diffusion.ddim_sample(
