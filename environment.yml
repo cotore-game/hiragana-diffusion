@@ -3,4 +3,8 @@ channels:
   - defaults
 dependencies:
   - python=3.12
-  - pillow
+  - pip
+  - pip:
+      - numpy==2.2.6
+      - pillow==12.1.1
+      - torch==2.10.0

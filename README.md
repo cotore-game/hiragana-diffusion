@@ -74,3 +74,13 @@ python scripts/generate_dataset.py --config configs/dataset.example.json
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
+
+## 学習
+
+`configs/train.example.json`でデータセット、モデル、学習条件を設定します。
+
+```bash
+python scripts/train.py --config configs/train.example.json
+```
+
+画像は`[-1, 1]`へ正規化し、cosine scheduleを使ったDDPMのノイズ予測損失で学習します。文字ID、書体ID、時刻は独立に埋め込んでU-Netへ与えます。チェックポイントには通常モデル、EMAモデル、optimizer、mixed precision scaler、書体ID対応、設定を保存します。
