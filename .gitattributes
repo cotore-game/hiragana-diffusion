@@ -23,3 +23,6 @@
 *.ttf binary
 *.otf binary
 *.ttc binary
+
+# Archived inference models
+artifacts/**/model/*.pt filter=lfs diff=lfs merge=lfs -text
