@@ -51,6 +51,15 @@
 
 Git LFSで管理しています。
 
+推論専用モデルから直接生成:
+
+```bash
+python scripts/sample.py \
+  --checkpoint artifacts/takao-baseline-64/model/inference.pt \
+  --steps 50 \
+  --seed 20260730
+```
+
 ## 再現コマンド
 
 ```bash
