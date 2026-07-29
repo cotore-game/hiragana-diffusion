@@ -6,6 +6,7 @@ import torch
 
 from hiragana_diffusion.diffusion import GaussianDiffusion, cosine_beta_schedule
 from hiragana_diffusion.model import ConditionalUNet
+from scripts.train import format_duration
 
 
 class TrainingTests(unittest.TestCase):
@@ -58,6 +59,14 @@ class TrainingTests(unittest.TestCase):
         self.assertEqual(output.shape, (2, 1, 64, 64))
         output.square().mean().backward()
         self.assertTrue(any(parameter.grad is not None for parameter in model.parameters()))
+
+    def test_formats_eta_durations(self) -> None:
+        self.assertEqual(format_duration(0), "00:00")
+        self.assertEqual(format_duration(65), "01:05")
+        self.assertEqual(format_duration(3661), "1:01:01")
+
+    def test_clamps_negative_eta_to_zero(self) -> None:
+        self.assertEqual(format_duration(-1), "00:00")
 
 
 if __name__ == "__main__":
