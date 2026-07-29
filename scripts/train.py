@@ -52,6 +52,14 @@ def format_duration(seconds: float) -> str:
     return f"{minutes:02d}:{seconds:02d}"
 
 
+def print_progress(message: str, complete: bool = False) -> None:
+    if sys.stdout.isatty():
+        end = "\n" if complete else ""
+        print(f"\r\033[2K{message}", end=end, flush=True)
+    else:
+        print(message, flush=True)
+
+
 def main() -> None:
     arguments = parse_arguments()
     config = json.loads(arguments.config.read_text(encoding="utf-8"))
@@ -173,7 +181,7 @@ def main() -> None:
                 remaining_epoch_steps = batches_per_epoch - batch_index
                 remaining_total_steps = total_steps - global_step
                 progress_percent = 100.0 * global_step / total_steps
-                print(
+                progress_message = (
                     f"epoch={epoch + 1}/{epoch_count} "
                     f"batch={batch_index}/{batches_per_epoch} "
                     f"step={global_step}/{total_steps} "
@@ -181,17 +189,17 @@ def main() -> None:
                     f"loss={loss.item():.6f} "
                     f"step_time={seconds_per_step:.3f}s "
                     f"epoch_eta={format_duration(remaining_epoch_steps * seconds_per_step)} "
-                    f"total_eta={format_duration(remaining_total_steps * seconds_per_step)}",
-                    flush=True,
+                    f"total_eta={format_duration(remaining_total_steps * seconds_per_step)}"
                 )
+                print_progress(progress_message)
 
         average_loss = total_loss / len(dataset)
         epoch_elapsed = time.monotonic() - epoch_started_at
-        print(
+        print_progress(
             f"epoch_complete={epoch + 1}/{epoch_count} "
             f"loss={average_loss:.6f} "
             f"elapsed={format_duration(epoch_elapsed)}",
-            flush=True,
+            complete=True,
         )
 
         should_save = (
