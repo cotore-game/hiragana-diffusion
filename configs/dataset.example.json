@@ -14,13 +14,11 @@
   "fonts": [
     {
       "id": "takao-gothic",
-      "style": "gothic",
       "path": "/usr/share/fonts/truetype/takao-gothic/TakaoGothic.ttf",
       "exclude_characters": []
     },
     {
       "id": "takao-mincho",
-      "style": "mincho",
       "path": "/usr/share/fonts/truetype/takao-mincho/TakaoMincho.ttf",
       "exclude_characters": []
     }

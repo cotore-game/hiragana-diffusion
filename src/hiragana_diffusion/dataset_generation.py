@@ -56,7 +56,6 @@ class AugmentationConfig:
 @dataclass(frozen=True)
 class FontConfig:
     id: str
-    style: str
     path: Path
     exclude_characters: frozenset[str]
 
@@ -119,7 +118,6 @@ def load_config(path: Path) -> DatasetConfig:
         fonts.append(
             FontConfig(
                 id=font_id,
-                style=str(font_raw["style"]),
                 path=Path(str(font_raw["path"])).expanduser(),
                 exclude_characters=excluded,
             )
@@ -251,7 +249,6 @@ def generate_dataset(
         "codepoint",
         "character_index",
         "font_id",
-        "style",
         "sample_index",
         "translate_x",
         "translate_y",
@@ -321,7 +318,6 @@ def generate_dataset(
                             "codepoint": f"U+{ord(character):04X}",
                             "character_index": character_index,
                             "font_id": font_config.id,
-                            "style": font_config.style,
                             "sample_index": sample_index,
                             "translate_x": f"{translate_x:.6f}",
                             "translate_y": f"{translate_y:.6f}",

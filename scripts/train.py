@@ -7,6 +7,7 @@ import copy
 import json
 import random
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -42,6 +43,23 @@ def update_ema(ema_model: nn.Module, model: nn.Module, decay: float) -> None:
         ema_buffer.copy_(buffer)
 
 
+def format_duration(seconds: float) -> str:
+    seconds = max(0, round(seconds))
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if hours:
+        return f"{hours:d}:{minutes:02d}:{seconds:02d}"
+    return f"{minutes:02d}:{seconds:02d}"
+
+
+def print_progress(message: str, complete: bool = False) -> None:
+    if sys.stdout.isatty():
+        end = "\n" if complete else ""
+        print(f"\r\033[2K{message}", end=end, flush=True)
+    else:
+        print(message, flush=True)
+
+
 def main() -> None:
     arguments = parse_arguments()
     config = json.loads(arguments.config.read_text(encoding="utf-8"))
@@ -66,7 +84,7 @@ def main() -> None:
     )
     model_arguments = {
         "character_count": dataset.character_count,
-        "style_count": len(dataset.styles),
+        "font_count": len(dataset.font_ids),
         "base_channels": int(config["base_channels"]),
         "channel_multipliers": tuple(config["channel_multipliers"]),
         "condition_dim": int(config["condition_dim"]),
@@ -99,17 +117,36 @@ def main() -> None:
         start_epoch = int(checkpoint["epoch"])
         global_step = int(checkpoint["global_step"])
 
-    parameter_count = sum(parameter.numel() for parameter in model.parameters())
-    print(f"device={device} samples={len(dataset)} parameters={parameter_count:,}")
-    print(f"styles={dataset.styles}")
+    epoch_count = int(config["epochs"])
+    batches_per_epoch = len(loader)
+    total_steps = epoch_count * batches_per_epoch
+    initial_global_step = global_step
+    log_every_steps = int(config.get("log_every_steps", 10))
+    if log_every_steps <= 0:
+        raise ValueError("log_every_steps must be positive")
 
-    for epoch in range(start_epoch, int(config["epochs"])):
+    parameter_count = sum(parameter.numel() for parameter in model.parameters())
+    print(
+        f"device={device} samples={len(dataset)} parameters={parameter_count:,}",
+        flush=True,
+    )
+    print(f"font_ids={dataset.font_ids}", flush=True)
+    print(
+        f"epochs={start_epoch + 1}-{epoch_count} "
+        f"batches_per_epoch={batches_per_epoch} "
+        f"steps={global_step}/{total_steps}",
+        flush=True,
+    )
+
+    training_started_at = time.monotonic()
+    for epoch in range(start_epoch, epoch_count):
         model.train()
         total_loss = 0.0
-        for images, characters, styles in loader:
+        epoch_started_at = time.monotonic()
+        for batch_index, (images, characters, font_ids) in enumerate(loader, start=1):
             images = images.to(device, non_blocking=True)
             characters = characters.to(device, non_blocking=True)
-            styles = styles.to(device, non_blocking=True)
+            font_ids = font_ids.to(device, non_blocking=True)
             timesteps = torch.randint(
                 0, diffusion.timesteps, (images.shape[0],), device=device
             )
@@ -119,7 +156,7 @@ def main() -> None:
             optimizer.zero_grad(set_to_none=True)
             with torch.autocast(device_type=device.type, enabled=use_amp):
                 predicted_noise = model(
-                    noisy_images, timesteps, characters, styles
+                    noisy_images, timesteps, characters, font_ids
                 )
                 loss = nn.functional.mse_loss(predicted_noise, noise)
             scaler.scale(loss).backward()
@@ -133,8 +170,37 @@ def main() -> None:
             total_loss += loss.item() * images.shape[0]
             global_step += 1
 
+            should_log = (
+                batch_index % log_every_steps == 0
+                or batch_index == batches_per_epoch
+            )
+            if should_log:
+                elapsed = time.monotonic() - training_started_at
+                completed_this_run = global_step - initial_global_step
+                seconds_per_step = elapsed / completed_this_run
+                remaining_epoch_steps = batches_per_epoch - batch_index
+                remaining_total_steps = total_steps - global_step
+                progress_percent = 100.0 * global_step / total_steps
+                progress_message = (
+                    f"epoch={epoch + 1}/{epoch_count} "
+                    f"batch={batch_index}/{batches_per_epoch} "
+                    f"step={global_step}/{total_steps} "
+                    f"progress={progress_percent:5.1f}% "
+                    f"loss={loss.item():.6f} "
+                    f"step_time={seconds_per_step:.3f}s "
+                    f"epoch_eta={format_duration(remaining_epoch_steps * seconds_per_step)} "
+                    f"total_eta={format_duration(remaining_total_steps * seconds_per_step)}"
+                )
+                print_progress(progress_message)
+
         average_loss = total_loss / len(dataset)
-        print(f"epoch={epoch + 1}/{config['epochs']} loss={average_loss:.6f}")
+        epoch_elapsed = time.monotonic() - epoch_started_at
+        print_progress(
+            f"epoch_complete={epoch + 1}/{epoch_count} "
+            f"loss={average_loss:.6f} "
+            f"elapsed={format_duration(epoch_elapsed)}",
+            complete=True,
+        )
 
         should_save = (
             (epoch + 1) % int(config["save_every_epochs"]) == 0
@@ -149,7 +215,7 @@ def main() -> None:
                 "optimizer": optimizer.state_dict(),
                 "scaler": scaler.state_dict(),
                 "model_arguments": model_arguments,
-                "styles": dataset.styles,
+                "font_ids": dataset.font_ids,
                 "config": config,
             }
             if bool(config.get("keep_numbered_checkpoints", False)):

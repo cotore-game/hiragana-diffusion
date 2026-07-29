@@ -11,8 +11,10 @@ class SampleTests(unittest.TestCase):
     def test_loads_inference_only_archive(self) -> None:
         payload = {
             "format_version": 1,
-            "state_dict": {"weight": torch.tensor([1.0])},
-            "model_arguments": {"character_count": 46},
+            "state_dict": {
+                "style_embedding.weight": torch.tensor([[1.0]])
+            },
+            "model_arguments": {"character_count": 46, "style_count": 2},
             "condition_names": ("gothic", "mincho"),
             "diffusion_timesteps": 1000,
             "weights": "model",
@@ -23,7 +25,9 @@ class SampleTests(unittest.TestCase):
         )
 
         self.assertEqual(model_arguments["character_count"], 46)
-        self.assertIs(state_dict["weight"], payload["state_dict"]["weight"])
+        self.assertEqual(model_arguments["font_count"], 2)
+        self.assertNotIn("style_count", model_arguments)
+        self.assertIn("font_embedding.weight", state_dict)
         self.assertEqual(conditions, ("gothic", "mincho"))
         self.assertEqual(timesteps, 1000)
         self.assertEqual(weights, "model")

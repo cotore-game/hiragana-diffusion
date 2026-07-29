@@ -1,7 +1,7 @@
 {
-  "dataset": "data/datasets/takao-baseline-64",
-  "output": "outputs/takao-baseline-64",
-  "seed": 20260729,
+  "dataset": "data/datasets/nine-font-baseline-64",
+  "output": "outputs/nine-font-baseline-64",
+  "seed": 20260730,
   "batch_size": 128,
   "epochs": 100,
   "learning_rate": 0.0002,

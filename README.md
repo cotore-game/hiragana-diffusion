@@ -5,17 +5,18 @@
 ## 実験成果
 
 - [Takao Baseline 64](artifacts/takao-baseline-64/README.md) — Takao Gothic・Takao Minchoによる最初のConditional DDPM基準実験
+- [Nine-font Baseline 64](artifacts/nine-font-baseline-64/README.md) — 9フォントを個別`font_id`条件で学習した多フォント基準実験
 
 ## 目標
 
 最初にPC上でConditional DDPMを学習し、ひらがなの生成と、学習時に観測していない「文字 × 書体」の組み合わせへの汎化を検証します。
 
-本命の実験では、明朝体・ゴシック体では全ひらがなを学習し、教科書体では「た・ち・つ・て・と」を除外します。他書体から「た行」の文字内容を、教科書体のほかの文字から書体特徴を学習し、未観測の教科書体た行を生成できるか調べます。
+本命の実験では、複数フォントでは全ひらがなを学習し、HG創英角ポップ体では「は・ひ・ふ・へ・ほ」を除外します。他フォントから「は行」の文字内容を、HG創英角ポップ体のほかの文字からフォント特徴を学習し、未観測のHG創英角ポップ体は行を生成できるか調べます。
 
 ## 実験方針
 
 1. 全書体・全文字を使い、Conditional DDPMが正しく学習・生成できることを確認する
-2. 教科書体のた行を除外し、未観測組み合わせへの汎化を検証する
+2. HG創英角ポップ体のは行を除外し、未観測組み合わせへの汎化を検証する
 3. フォント数、条件表現、データ拡張、モデル容量を比較する
 
 まず十分な表現力を持つ基準モデルを構築し、生成能力と条件設計を検証します。
@@ -73,6 +74,19 @@ python scripts/generate_dataset.py --config configs/dataset.example.json
 
 生成先は既定で`data/datasets/<name>/`です。各画像は8-bitグレースケールPNGで、使用条件と実際に適用した変形値は`config.json`と`manifest.csv`へ保存されます。各文字のサンプル0は変形なし、それ以降にはseed付きのランダム変形を適用します。
 
+### 9フォント基準実験
+
+9フォントすべてについて、46文字×100枚を生成して学習する設定です。フォント条件には大分類ではなく、manifestの個別`font_id`を使用します。
+
+```bash
+python scripts/generate_dataset.py \
+  --config configs/dataset.nine-font-baseline.json
+python scripts/train.py \
+  --config configs/train.nine-font-baseline.json
+```
+
+合計41,400枚、バッチサイズ128、100エポックで、1エポックあたり324バッチ、全32,400更新です。欠損条件を設ける前に、多書体条件で各文字を再現できるか確認するための基準実験です。
+
 ## テスト
 
 ```bash
@@ -87,9 +101,29 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 python scripts/train.py --config configs/train.example.json
 ```
 
-画像は`[-1, 1]`へ正規化し、cosine scheduleを使ったDDPMのノイズ予測損失で学習します。文字ID、書体ID、時刻は独立に埋め込んでU-Netへ与えます。チェックポイントには通常モデル、EMAモデル、optimizer、mixed precision scaler、書体ID対応、設定を保存します。
+画像は`[-1, 1]`へ正規化し、cosine scheduleを使ったDDPMのノイズ予測損失で学習します。文字ID、個別`font_id`、時刻は独立に埋め込んでU-Netへ与えます。チェックポイントには通常モデル、EMAモデル、optimizer、mixed precision scaler、`font_id`対応、設定を保存します。
 
 番号付きチェックポイントを残す場合は、学習設定の`keep_numbered_checkpoints`を`true`にします。既定では`latest.pt`だけを更新します。
+
+### 進捗と再開
+
+`log_every_steps`で指定した更新間隔ごとに、現在のエポックとバッチ、全体更新数、進捗率、直近loss、平均更新時間、エポック内ETA、学習全体のETAを表示します。
+
+9フォント基準実験を最初から始める場合:
+
+```bash
+python scripts/train.py --config configs/train.nine-font-baseline.json
+```
+
+既存のチェックポイントから再開する場合:
+
+```bash
+python scripts/train.py \
+  --config configs/train.nine-font-baseline.json \
+  --resume outputs/nine-font-baseline-64/latest.pt
+```
+
+再開時はcheckpointに保存されたepoch、モデル、EMAモデル、optimizer、mixed precision scaler、更新数を復元します。
 
 ## 生成
 

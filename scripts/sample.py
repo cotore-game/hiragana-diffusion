@@ -59,25 +59,45 @@ def load_sampling_bundle(
     payload: dict[str, object],
     use_ema: bool,
 ) -> tuple[dict[str, object], dict[str, torch.Tensor], tuple[str, ...], int, str]:
+    def migrate_legacy_model(
+        model_arguments: dict[str, object],
+        state_dict: dict[str, torch.Tensor],
+    ) -> tuple[dict[str, object], dict[str, torch.Tensor]]:
+        if "style_count" not in model_arguments:
+            return model_arguments, state_dict
+
+        model_arguments["font_count"] = model_arguments.pop("style_count")
+        legacy_key = "style_embedding.weight"
+        if legacy_key in state_dict:
+            state_dict["font_embedding.weight"] = state_dict.pop(legacy_key)
+        return model_arguments, state_dict
+
     if int(payload.get("format_version", 0)) == 1:
         if use_ema:
             raise ValueError(
                 "inference-only archives contain one weight set; "
                 "do not specify --ema-model"
             )
-        return (
+        model_arguments, state_dict = migrate_legacy_model(
             dict(payload["model_arguments"]),
             dict(payload["state_dict"]),
+        )
+        return (
+            model_arguments,
+            state_dict,
             tuple(payload["condition_names"]),
             int(payload["diffusion_timesteps"]),
             str(payload["weights"]),
         )
 
     state_key = "ema_model" if use_ema else "model"
+    model_arguments, state_dict = migrate_legacy_model(
+        dict(payload["model_arguments"]), dict(payload[state_key])
+    )
     return (
-        dict(payload["model_arguments"]),
-        dict(payload[state_key]),
-        tuple(payload["styles"]),
+        model_arguments,
+        state_dict,
+        tuple(payload.get("font_ids", payload.get("styles", ()))),
         int(dict(payload["config"])["timesteps"]),
         state_key,
     )
@@ -96,7 +116,7 @@ def to_images(tensor: torch.Tensor) -> list[Image.Image]:
 
 def save_outputs(
     images: list[Image.Image],
-    styles: tuple[str, ...],
+    font_ids: tuple[str, ...],
     output: Path,
     seed: int,
     steps: int,
@@ -109,7 +129,7 @@ def save_outputs(
         "L",
         (
             label_width + character_count * image_size,
-            header_height + len(styles) * image_size,
+            header_height + len(font_ids) * image_size,
         ),
         color=255,
     )
@@ -121,18 +141,18 @@ def save_outputs(
         draw.text((x, 4), character, font=font, fill=0, anchor="mt")
 
     run_directory = output / f"seed-{seed}-steps-{steps}"
-    for style_index, style in enumerate(styles):
-        y = header_height + style_index * image_size
-        draw.text((4, y + image_size // 2), style, font=font, fill=0, anchor="lm")
-        style_directory = run_directory / style
-        style_directory.mkdir(parents=True, exist_ok=True)
+    for font_index, font_id in enumerate(font_ids):
+        y = header_height + font_index * image_size
+        draw.text((4, y + image_size // 2), font_id, font=font, fill=0, anchor="lm")
+        font_directory = run_directory / font_id
+        font_directory.mkdir(parents=True, exist_ok=True)
 
         for character_index, character in enumerate(HIRAGANA):
-            image = images[style_index * character_count + character_index]
+            image = images[font_index * character_count + character_index]
             x = label_width + character_index * image_size
             grid.paste(image, (x, y))
             image.save(
-                style_directory
+                font_directory
                 / f"{character_index:02d}_U+{ord(character):04X}.png",
                 format="PNG",
                 optimize=True,
@@ -155,7 +175,7 @@ def main() -> None:
     (
         model_arguments,
         state_dict,
-        styles,
+        font_ids,
         diffusion_timesteps,
         weight_name,
     ) = load_sampling_bundle(payload, arguments.ema_model)
@@ -179,9 +199,9 @@ def main() -> None:
         generator=generator,
         device=device,
     )
-    initial_noise = base_noise.repeat(len(styles), 1, 1, 1)
-    characters = torch.arange(character_count, device=device).repeat(len(styles))
-    style_indices = torch.arange(len(styles), device=device).repeat_interleave(
+    initial_noise = base_noise.repeat(len(font_ids), 1, 1, 1)
+    characters = torch.arange(character_count, device=device).repeat(len(font_ids))
+    font_indices = torch.arange(len(font_ids), device=device).repeat_interleave(
         character_count
     )
 
@@ -194,12 +214,12 @@ def main() -> None:
         model=model,
         initial_noise=initial_noise,
         characters=characters,
-        styles=style_indices,
+        font_ids=font_indices,
         sampling_steps=arguments.steps,
     )
     grid_path = save_outputs(
         images=to_images(generated),
-        styles=styles,
+        font_ids=font_ids,
         output=arguments.output,
         seed=arguments.seed,
         steps=arguments.steps,

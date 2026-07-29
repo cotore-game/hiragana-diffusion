@@ -21,9 +21,9 @@ class HiraganaDataset(Dataset[tuple[torch.Tensor, torch.Tensor, torch.Tensor]]):
         if not self.rows:
             raise ValueError(f"manifest contains no samples: {manifest}")
 
-        self.styles = tuple(sorted({row["style"] for row in self.rows}))
-        self.style_to_index = {
-            style: index for index, style in enumerate(self.styles)
+        self.font_ids = tuple(sorted({row["font_id"] for row in self.rows}))
+        self.font_id_to_index = {
+            font_id: index for index, font_id in enumerate(self.font_ids)
         }
         self.character_count = max(int(row["character_index"]) for row in self.rows) + 1
 
@@ -41,5 +41,7 @@ class HiraganaDataset(Dataset[tuple[torch.Tensor, torch.Tensor, torch.Tensor]]):
 
         image_tensor = torch.from_numpy(array).unsqueeze(0) / 127.5 - 1.0
         character = torch.tensor(int(row["character_index"]), dtype=torch.long)
-        style = torch.tensor(self.style_to_index[row["style"]], dtype=torch.long)
-        return image_tensor, character, style
+        font_id = torch.tensor(
+            self.font_id_to_index[row["font_id"]], dtype=torch.long
+        )
+        return image_tensor, character, font_id

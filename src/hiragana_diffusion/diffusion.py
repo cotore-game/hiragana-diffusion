@@ -47,7 +47,7 @@ class GaussianDiffusion:
         model: nn.Module,
         initial_noise: torch.Tensor,
         characters: torch.Tensor,
-        styles: torch.Tensor,
+        font_ids: torch.Tensor,
         sampling_steps: int,
     ) -> torch.Tensor:
         if not 1 <= sampling_steps <= self.timesteps:
@@ -70,7 +70,7 @@ class GaussianDiffusion:
                 device=image.device,
                 dtype=torch.long,
             )
-            predicted_noise = model(image, timesteps, characters, styles)
+            predicted_noise = model(image, timesteps, characters, font_ids)
             alpha_bar = self.alpha_bars[timestep]
             predicted_clean = (
                 image - torch.sqrt(1.0 - alpha_bar) * predicted_noise
