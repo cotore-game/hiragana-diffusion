@@ -1,0 +1,28 @@
+{
+  "name": "takao-baseline-64",
+  "image_size": 64,
+  "font_size": 48,
+  "samples_per_character": 100,
+  "seed": 20260729,
+  "supersampling": 4,
+  "augmentation": {
+    "translate_x": [-4.0, 4.0],
+    "translate_y": [-4.0, 4.0],
+    "scale": [0.9, 1.1],
+    "rotation_degrees": [-3.0, 3.0]
+  },
+  "fonts": [
+    {
+      "id": "takao-gothic",
+      "style": "gothic",
+      "path": "/usr/share/fonts/truetype/takao-gothic/TakaoGothic.ttf",
+      "exclude_characters": []
+    },
+    {
+      "id": "takao-mincho",
+      "style": "mincho",
+      "path": "/usr/share/fonts/truetype/takao-mincho/TakaoMincho.ttf",
+      "exclude_characters": []
+    }
+  ]
+}

@@ -53,4 +53,24 @@ conda env create -f environment.yml
 conda activate hiragana-diffusion
 ```
 
-依存ライブラリと実行手順は、実装開始後に追記します。
+既に環境を作成済みの場合は、定義に合わせて更新します。
+
+```bash
+conda env update --file environment.yml
+```
+
+## データセット生成
+
+`configs/dataset.example.json`をコピーして、データセット名、画像サイズ、フォント、除外文字、データ拡張範囲を設定します。
+
+```bash
+python scripts/generate_dataset.py --config configs/dataset.example.json
+```
+
+生成先は既定で`data/datasets/<name>/`です。各画像は8-bitグレースケールPNGで、使用条件と実際に適用した変形値は`config.json`と`manifest.csv`へ保存されます。各文字のサンプル0は変形なし、それ以降にはseed付きのランダム変形を適用します。
+
+## テスト
+
+```bash
+PYTHONPATH=src python -m unittest discover -s tests -v
+```

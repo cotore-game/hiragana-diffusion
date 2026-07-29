@@ -8,3 +8,12 @@
 - `datasets/`: 再現や比較のために固定して共有するデータセット。画像と配列はGit LFSで管理します。
 
 使用フォント名、入手元、ライセンス、ファイルハッシュ、文字集合、除外条件、生成設定、乱数seedは、実験を再現できる形で記録します。
+
+固定データセットは次の構造で生成します。
+
+```text
+datasets/<dataset-name>/
+├── config.json
+├── manifest.csv
+└── <font-id>/<character-index>_<codepoint>/<sample-index>.png
+```
