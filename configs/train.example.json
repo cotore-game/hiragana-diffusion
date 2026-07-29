@@ -14,6 +14,7 @@
   "dropout": 0.1,
   "ema_decay": 0.999,
   "gradient_clip_norm": 1.0,
+  "log_every_steps": 10,
   "save_every_epochs": 5,
   "keep_numbered_checkpoints": false,
   "mixed_precision": true
