@@ -48,11 +48,15 @@ def build_inference_payload(
 ) -> dict[str, object]:
     state_key = "ema_model" if use_ema else "model"
     training_config = dict(checkpoint["config"])
+    condition_names = checkpoint.get("font_ids", checkpoint.get("styles"))
+    if condition_names is None:
+        raise ValueError("checkpoint contains no font_ids")
+
     return {
         "format_version": 1,
         "state_dict": checkpoint[state_key],
         "model_arguments": checkpoint["model_arguments"],
-        "condition_names": tuple(checkpoint["styles"]),
+        "condition_names": tuple(condition_names),
         "diffusion_timesteps": int(training_config["timesteps"]),
         "image_size": 64,
         "weights": state_key,

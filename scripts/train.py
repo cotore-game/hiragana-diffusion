@@ -66,7 +66,7 @@ def main() -> None:
     )
     model_arguments = {
         "character_count": dataset.character_count,
-        "style_count": len(dataset.styles),
+        "font_count": len(dataset.font_ids),
         "base_channels": int(config["base_channels"]),
         "channel_multipliers": tuple(config["channel_multipliers"]),
         "condition_dim": int(config["condition_dim"]),
@@ -101,15 +101,15 @@ def main() -> None:
 
     parameter_count = sum(parameter.numel() for parameter in model.parameters())
     print(f"device={device} samples={len(dataset)} parameters={parameter_count:,}")
-    print(f"styles={dataset.styles}")
+    print(f"font_ids={dataset.font_ids}")
 
     for epoch in range(start_epoch, int(config["epochs"])):
         model.train()
         total_loss = 0.0
-        for images, characters, styles in loader:
+        for images, characters, font_ids in loader:
             images = images.to(device, non_blocking=True)
             characters = characters.to(device, non_blocking=True)
-            styles = styles.to(device, non_blocking=True)
+            font_ids = font_ids.to(device, non_blocking=True)
             timesteps = torch.randint(
                 0, diffusion.timesteps, (images.shape[0],), device=device
             )
@@ -119,7 +119,7 @@ def main() -> None:
             optimizer.zero_grad(set_to_none=True)
             with torch.autocast(device_type=device.type, enabled=use_amp):
                 predicted_noise = model(
-                    noisy_images, timesteps, characters, styles
+                    noisy_images, timesteps, characters, font_ids
                 )
                 loss = nn.functional.mse_loss(predicted_noise, noise)
             scaler.scale(loss).backward()
@@ -149,7 +149,7 @@ def main() -> None:
                 "optimizer": optimizer.state_dict(),
                 "scaler": scaler.state_dict(),
                 "model_arguments": model_arguments,
-                "styles": dataset.styles,
+                "font_ids": dataset.font_ids,
                 "config": config,
             }
             if bool(config.get("keep_numbered_checkpoints", False)):

@@ -79,7 +79,7 @@ class ConditionalUNet(nn.Module):
     def __init__(
         self,
         character_count: int,
-        style_count: int,
+        font_count: int,
         base_channels: int = 64,
         channel_multipliers: tuple[int, ...] = (1, 2, 4),
         condition_dim: int = 256,
@@ -94,7 +94,7 @@ class ConditionalUNet(nn.Module):
             nn.Linear(condition_dim * 4, condition_dim),
         )
         self.character_embedding = nn.Embedding(character_count, condition_dim)
-        self.style_embedding = nn.Embedding(style_count, condition_dim)
+        self.font_embedding = nn.Embedding(font_count, condition_dim)
         self.input = nn.Conv2d(1, channels[0], 3, padding=1)
 
         self.down_blocks = nn.ModuleList()
@@ -126,12 +126,12 @@ class ConditionalUNet(nn.Module):
         image: torch.Tensor,
         timesteps: torch.Tensor,
         characters: torch.Tensor,
-        styles: torch.Tensor,
+        font_ids: torch.Tensor,
     ) -> torch.Tensor:
         condition = (
             self.time_mlp(timestep_embedding(timesteps, self.condition_dim))
             + self.character_embedding(characters)
-            + self.style_embedding(styles)
+            + self.font_embedding(font_ids)
         )
         hidden = self.input(image)
         skips: list[torch.Tensor] = []
