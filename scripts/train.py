@@ -152,7 +152,8 @@ def main() -> None:
                 "styles": dataset.styles,
                 "config": config,
             }
-            torch.save(checkpoint, output / f"checkpoint-{epoch + 1:04d}.pt")
+            if bool(config.get("keep_numbered_checkpoints", False)):
+                torch.save(checkpoint, output / f"checkpoint-{epoch + 1:04d}.pt")
             torch.save(checkpoint, output / "latest.pt")
 
 
