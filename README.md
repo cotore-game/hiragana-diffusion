@@ -2,6 +2,10 @@
 
 ひらがなの文字内容と書体を条件として生成する、画像拡散モデルの実験リポジトリです。
 
+## 実験成果
+
+- [Takao Baseline 64](artifacts/takao-baseline-64/README.md) — Takao Gothic・Takao Minchoによる最初のConditional DDPM基準実験
+
 ## 目標
 
 最初にPC上でConditional DDPMを学習し、ひらがなの生成と、学習時に観測していない「文字 × 書体」の組み合わせへの汎化を検証します。
