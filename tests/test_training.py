@@ -22,6 +22,24 @@ class TrainingTests(unittest.TestCase):
         noisy = diffusion.add_noise(images, timesteps, torch.randn_like(images))
         self.assertEqual(noisy.shape, images.shape)
 
+    def test_ddim_sampling_preserves_shape(self) -> None:
+        diffusion = GaussianDiffusion(10, torch.device("cpu"))
+
+        class ZeroNoiseModel(torch.nn.Module):
+            def forward(self, image, timesteps, characters, styles):
+                return torch.zeros_like(image)
+
+        noise = torch.randn(2, 1, 16, 16)
+        generated = diffusion.ddim_sample(
+            model=ZeroNoiseModel(),
+            initial_noise=noise,
+            characters=torch.tensor([0, 1]),
+            styles=torch.tensor([0, 0]),
+            sampling_steps=5,
+        )
+        self.assertEqual(generated.shape, noise.shape)
+        self.assertTrue(torch.isfinite(generated).all())
+
     def test_unet_preserves_image_shape(self) -> None:
         model = ConditionalUNet(
             character_count=46,
