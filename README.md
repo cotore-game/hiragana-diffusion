@@ -73,6 +73,19 @@ python scripts/generate_dataset.py --config configs/dataset.example.json
 
 生成先は既定で`data/datasets/<name>/`です。各画像は8-bitグレースケールPNGで、使用条件と実際に適用した変形値は`config.json`と`manifest.csv`へ保存されます。各文字のサンプル0は変形なし、それ以降にはseed付きのランダム変形を適用します。
 
+### 9フォント基準実験
+
+9フォントすべてについて、46文字×100枚を生成して学習する設定です。フォント条件には大分類ではなく、manifestの個別`font_id`を使用します。
+
+```bash
+python scripts/generate_dataset.py \
+  --config configs/dataset.nine-font-baseline.json
+python scripts/train.py \
+  --config configs/train.nine-font-baseline.json
+```
+
+合計41,400枚、バッチサイズ128、100エポックで、1エポックあたり324バッチ、全32,400更新です。欠損条件を設ける前に、多書体条件で各文字を再現できるか確認するための基準実験です。
+
 ## テスト
 
 ```bash
@@ -87,7 +100,7 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 python scripts/train.py --config configs/train.example.json
 ```
 
-画像は`[-1, 1]`へ正規化し、cosine scheduleを使ったDDPMのノイズ予測損失で学習します。文字ID、書体ID、時刻は独立に埋め込んでU-Netへ与えます。チェックポイントには通常モデル、EMAモデル、optimizer、mixed precision scaler、書体ID対応、設定を保存します。
+画像は`[-1, 1]`へ正規化し、cosine scheduleを使ったDDPMのノイズ予測損失で学習します。文字ID、個別`font_id`、時刻は独立に埋め込んでU-Netへ与えます。チェックポイントには通常モデル、EMAモデル、optimizer、mixed precision scaler、`font_id`対応、設定を保存します。
 
 番号付きチェックポイントを残す場合は、学習設定の`keep_numbered_checkpoints`を`true`にします。既定では`latest.pt`だけを更新します。
 
