@@ -15,7 +15,7 @@ class ExportModelTests(unittest.TestCase):
             "optimizer": {"unnecessary": True},
             "scaler": {"unnecessary": True},
             "model_arguments": {"character_count": 46},
-            "styles": ("gothic", "mincho"),
+            "font_ids": ("takao-gothic", "takao-mincho"),
             "epoch": 100,
             "global_step": 7200,
             "config": {
@@ -32,3 +32,4 @@ class ExportModelTests(unittest.TestCase):
         self.assertNotIn("optimizer", payload)
         self.assertNotIn("scaler", payload)
         self.assertEqual(payload["training"]["global_step"], 7200)
+        self.assertEqual(payload["condition_names"], checkpoint["font_ids"])

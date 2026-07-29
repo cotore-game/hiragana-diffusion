@@ -26,7 +26,7 @@ class TrainingTests(unittest.TestCase):
         diffusion = GaussianDiffusion(10, torch.device("cpu"))
 
         class ZeroNoiseModel(torch.nn.Module):
-            def forward(self, image, timesteps, characters, styles):
+            def forward(self, image, timesteps, characters, font_ids):
                 return torch.zeros_like(image)
 
         noise = torch.randn(2, 1, 16, 16)
@@ -34,7 +34,7 @@ class TrainingTests(unittest.TestCase):
             model=ZeroNoiseModel(),
             initial_noise=noise,
             characters=torch.tensor([0, 1]),
-            styles=torch.tensor([0, 0]),
+            font_ids=torch.tensor([0, 0]),
             sampling_steps=5,
         )
         self.assertEqual(generated.shape, noise.shape)
@@ -43,7 +43,7 @@ class TrainingTests(unittest.TestCase):
     def test_unet_preserves_image_shape(self) -> None:
         model = ConditionalUNet(
             character_count=46,
-            style_count=3,
+            font_count=3,
             base_channels=16,
             channel_multipliers=(1, 2, 4),
             condition_dim=64,
