@@ -2,6 +2,10 @@
 
 ひらがなの文字内容と書体を条件として生成する、画像拡散モデルの実験リポジトリです。
 
+## 実験成果
+
+- [Takao Baseline 64](artifacts/takao-baseline-64/README.md) — Takao Gothic・Takao Minchoによる最初のConditional DDPM基準実験
+
 ## 目標
 
 最初にPC上でConditional DDPMを学習し、ひらがなの生成と、学習時に観測していない「文字 × 書体」の組み合わせへの汎化を検証します。
@@ -74,3 +78,29 @@ python scripts/generate_dataset.py --config configs/dataset.example.json
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
+
+## 学習
+
+`configs/train.example.json`でデータセット、モデル、学習条件を設定します。
+
+```bash
+python scripts/train.py --config configs/train.example.json
+```
+
+画像は`[-1, 1]`へ正規化し、cosine scheduleを使ったDDPMのノイズ予測損失で学習します。文字ID、書体ID、時刻は独立に埋め込んでU-Netへ与えます。チェックポイントには通常モデル、EMAモデル、optimizer、mixed precision scaler、書体ID対応、設定を保存します。
+
+番号付きチェックポイントを残す場合は、学習設定の`keep_numbered_checkpoints`を`true`にします。既定では`latest.pt`だけを更新します。
+
+## 生成
+
+学習済みチェックポイントから、決定論的DDIMで全条件を生成します。
+
+```bash
+python scripts/sample.py \
+  --checkpoint outputs/takao-baseline-64/latest.pt \
+  --steps 50
+```
+
+同じ文字の各書体には同一の初期ノイズを使用します。書体別の個別PNGと、全条件を比較する`grid.png`を`outputs/takao-baseline-64/samples/`へ保存します。
+
+既定では直接学習したモデルを使用します。EMAモデルを比較する場合は`--ema-model`を指定します。
