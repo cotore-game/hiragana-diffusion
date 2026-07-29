@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environments
+.env
+.env.*
+.venv/
+venv/
+
+# IDE and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local datasets and font files
+data/generated/
+data/raw/
+data/fonts/*
+!data/fonts/.gitkeep
+*.ttf
+*.otf
+*.ttc
+
+# Training artifacts
+outputs/*
+!outputs/.gitkeep
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# Logs and experiment trackers
+logs/
+runs/
+wandb/
+tensorboard/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
