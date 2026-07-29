@@ -1,0 +1,61 @@
+{
+  "name": "nine-font-baseline-64",
+  "image_size": 64,
+  "font_size": 48,
+  "samples_per_character": 100,
+  "seed": 20260730,
+  "supersampling": 4,
+  "augmentation": {
+    "translate_x": [-4.0, 4.0],
+    "translate_y": [-4.0, 4.0],
+    "scale": [0.9, 1.1],
+    "rotation_degrees": [-3.0, 3.0]
+  },
+  "fonts": [
+    {
+      "id": "takao-gothic",
+      "path": "/usr/share/fonts/truetype/takao-gothic/TakaoGothic.ttf",
+      "exclude_characters": []
+    },
+    {
+      "id": "takao-mincho",
+      "path": "/usr/share/fonts/truetype/takao-mincho/TakaoMincho.ttf",
+      "exclude_characters": []
+    },
+    {
+      "id": "meiryo",
+      "path": "/mnt/c/Windows/Fonts/meiryo.ttc",
+      "exclude_characters": []
+    },
+    {
+      "id": "yu-gothic",
+      "path": "/mnt/c/Windows/Fonts/YuGothR.ttc",
+      "exclude_characters": []
+    },
+    {
+      "id": "yu-mincho",
+      "path": "/mnt/c/Windows/Fonts/yumin.ttf",
+      "exclude_characters": []
+    },
+    {
+      "id": "ud-digital-kyokasho",
+      "path": "/mnt/c/Windows/Fonts/UDDigiKyokashoN-R.ttc",
+      "exclude_characters": []
+    },
+    {
+      "id": "hg-maru-gothic",
+      "path": "/mnt/c/Windows/Fonts/HGRSMP.TTF",
+      "exclude_characters": []
+    },
+    {
+      "id": "hg-seikaisho",
+      "path": "/mnt/c/Windows/Fonts/HGRSKP.TTF",
+      "exclude_characters": []
+    },
+    {
+      "id": "hg-soei-kakupop",
+      "path": "/mnt/c/Windows/Fonts/HGRPP1.TTC",
+      "exclude_characters": []
+    }
+  ]
+}
