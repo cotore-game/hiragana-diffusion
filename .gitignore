@@ -51,3 +51,4 @@ tensorboard/
 *.tmp
 *.temp
 *.bak
+condaenv.*.requirements.txt
