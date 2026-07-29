@@ -26,6 +26,8 @@ data/generated/
 data/raw/
 data/fonts/*
 !data/fonts/.gitkeep
+data/datasets/*
+!data/datasets/.gitkeep
 *.ttf
 *.otf
 *.ttc

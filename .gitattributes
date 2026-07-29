@@ -23,9 +23,3 @@
 *.ttf binary
 *.otf binary
 *.ttc binary
-
-# Versioned datasets managed by Git LFS
-data/datasets/**/*.png filter=lfs diff=lfs merge=lfs -text
-data/datasets/**/*.bmp filter=lfs diff=lfs merge=lfs -text
-data/datasets/**/*.npy filter=lfs diff=lfs merge=lfs -text
-data/datasets/**/*.npz filter=lfs diff=lfs merge=lfs -text
