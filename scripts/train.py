@@ -132,6 +132,9 @@ def main() -> None:
     log_every_steps = int(config.get("log_every_steps", 10))
     if log_every_steps <= 0:
         raise ValueError("log_every_steps must be positive")
+    epoch_log_interval = int(config.get("epoch_log_interval", 1))
+    if epoch_log_interval <= 0:
+        raise ValueError("epoch_log_interval must be positive")
 
     parameter_count = count_parameters(model)
     print(
@@ -204,12 +207,17 @@ def main() -> None:
 
         average_loss = total_loss / len(dataset)
         epoch_elapsed = time.monotonic() - epoch_started_at
-        print_progress(
-            f"epoch_complete={epoch + 1}/{epoch_count} "
-            f"loss={average_loss:.6f} "
-            f"elapsed={format_duration(epoch_elapsed)}",
-            complete=True,
+        should_complete_epoch_log = (
+            (epoch + 1) % epoch_log_interval == 0
+            or epoch + 1 == epoch_count
         )
+        if sys.stdout.isatty() or should_complete_epoch_log:
+            print_progress(
+                f"epoch_complete={epoch + 1}/{epoch_count} "
+                f"loss={average_loss:.6f} "
+                f"elapsed={format_duration(epoch_elapsed)}",
+                complete=should_complete_epoch_log,
+            )
 
         should_save = (
             (epoch + 1) % int(config["save_every_epochs"]) == 0
