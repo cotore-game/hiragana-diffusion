@@ -1,0 +1,22 @@
+{
+  "dataset": "data/datasets/nine-font-canonical-64",
+  "output": "outputs/miniature-v2-canonical-b64-64",
+  "seed": 20260730,
+  "batch_size": 64,
+  "epochs": 8100,
+  "learning_rate": 0.0002,
+  "weight_decay": 0.0,
+  "num_workers": 4,
+  "timesteps": 1000,
+  "model_architecture": "miniature",
+  "base_channels": 16,
+  "channel_multipliers": [1, 2, 3],
+  "condition_dim": 48,
+  "ema_decay": 0.999,
+  "gradient_clip_norm": 1.0,
+  "log_every_steps": 10,
+  "epoch_log_interval": 100,
+  "save_every_epochs": 500,
+  "keep_numbered_checkpoints": false,
+  "mixed_precision": true
+}
