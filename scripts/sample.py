@@ -16,7 +16,7 @@ sys.path.insert(0, str(REPOSITORY_ROOT / "src"))
 
 from hiragana_diffusion.dataset_generation import HIRAGANA
 from hiragana_diffusion.diffusion import GaussianDiffusion
-from hiragana_diffusion.model import ConditionalUNet
+from hiragana_diffusion.model_factory import build_model
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -179,7 +179,7 @@ def main() -> None:
         diffusion_timesteps,
         weight_name,
     ) = load_sampling_bundle(payload, arguments.ema_model)
-    model = ConditionalUNet(**model_arguments).to(device)
+    model = build_model(model_arguments).to(device)
     model.load_state_dict(state_dict)
     model.eval()
 

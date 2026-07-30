@@ -20,7 +20,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY_ROOT / "src"))
 
 from hiragana_diffusion.diffusion import GaussianDiffusion
-from hiragana_diffusion.model import ConditionalUNet
+from hiragana_diffusion.model_factory import build_model, count_parameters
 from hiragana_diffusion.training_data import HiraganaDataset
 
 
@@ -82,15 +82,23 @@ def main() -> None:
         persistent_workers=int(config["num_workers"]) > 0,
         generator=generator,
     )
+    architecture = str(config.get("model_architecture", "standard"))
     model_arguments = {
+        "architecture": architecture,
         "character_count": dataset.character_count,
         "font_count": len(dataset.font_ids),
         "base_channels": int(config["base_channels"]),
         "channel_multipliers": tuple(config["channel_multipliers"]),
         "condition_dim": int(config["condition_dim"]),
-        "dropout": float(config["dropout"]),
     }
-    model = ConditionalUNet(**model_arguments).to(device)
+    if architecture == "standard":
+        model_arguments["dropout"] = float(config["dropout"])
+    elif architecture == "miniature":
+        model_arguments["timesteps"] = int(config["timesteps"])
+    else:
+        raise ValueError(f"unknown model architecture: {architecture!r}")
+
+    model = build_model(model_arguments).to(device)
     ema_model = copy.deepcopy(model).eval()
     for parameter in ema_model.parameters():
         parameter.requires_grad_(False)
@@ -125,9 +133,10 @@ def main() -> None:
     if log_every_steps <= 0:
         raise ValueError("log_every_steps must be positive")
 
-    parameter_count = sum(parameter.numel() for parameter in model.parameters())
+    parameter_count = count_parameters(model)
     print(
-        f"device={device} samples={len(dataset)} parameters={parameter_count:,}",
+        f"device={device} architecture={architecture} "
+        f"samples={len(dataset)} parameters={parameter_count:,}",
         flush=True,
     )
     print(f"font_ids={dataset.font_ids}", flush=True)
