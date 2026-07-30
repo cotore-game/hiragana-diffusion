@@ -13,10 +13,9 @@ MODEL_ARGUMENTS = {
     "architecture": "miniature",
     "character_count": 46,
     "font_count": 9,
-    "timesteps": 1000,
-    "base_channels": 8,
+    "base_channels": 16,
     "channel_multipliers": (1, 2, 3),
-    "condition_dim": 32,
+    "condition_dim": 48,
 }
 
 
@@ -27,19 +26,33 @@ class MiniatureModelTests(unittest.TestCase):
 
     def test_model_uses_miniature_friendly_layers(self) -> None:
         model = build_model(MODEL_ARGUMENTS)
-        forbidden = (nn.GroupNorm, nn.SiLU, nn.ConvTranspose2d)
+        forbidden = (nn.GroupNorm, nn.SiLU, nn.ConvTranspose2d, nn.ReLU)
         self.assertFalse(
             any(isinstance(module, forbidden) for module in model.modules())
         )
+
+    def test_model_uses_foldable_batch_normalization(self) -> None:
+        model = build_model(MODEL_ARGUMENTS)
+        self.assertTrue(
+            any(isinstance(module, nn.BatchNorm2d) for module in model.modules())
+        )
+
+    def test_timestep_representation_has_no_embedding_table(self) -> None:
+        model = build_model(MODEL_ARGUMENTS)
+        embedding_sizes = {
+            module.num_embeddings
+            for module in model.modules()
+            if isinstance(module, nn.Embedding)
+        }
+        self.assertEqual(embedding_sizes, {9, 46})
 
     def test_forward_and_backward_preserve_64_pixel_shape(self) -> None:
         model = MiniatureConditionalUNet(
             character_count=46,
             font_count=9,
-            timesteps=1000,
-            base_channels=8,
+            base_channels=16,
             channel_multipliers=(1, 2, 3),
-            condition_dim=32,
+            condition_dim=48,
         )
         output = model(
             torch.randn(2, 1, 64, 64),
