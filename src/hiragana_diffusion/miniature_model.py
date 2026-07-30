@@ -1,8 +1,27 @@
 from __future__ import annotations
 
+import math
+
 import torch
 from torch import nn
 from torch.nn import functional as F
+
+
+def miniature_timestep_embedding(
+    timesteps: torch.Tensor,
+    dimension: int,
+) -> torch.Tensor:
+    half = dimension // 2
+    frequencies = torch.exp(
+        -math.log(10000)
+        * torch.arange(half, device=timesteps.device)
+        / half
+    )
+    angles = timesteps.float().unsqueeze(1) * frequencies.unsqueeze(0)
+    embedding = torch.cat((angles.sin(), angles.cos()), dim=1)
+    if dimension % 2:
+        embedding = F.pad(embedding, (0, 1))
+    return embedding
 
 
 class MiniatureResidualBlock(nn.Module):
@@ -16,10 +35,12 @@ class MiniatureResidualBlock(nn.Module):
         self.input = nn.Conv2d(
             input_channels, output_channels, kernel_size=3, padding=1
         )
+        self.input_norm = nn.BatchNorm2d(output_channels)
         self.condition = nn.Linear(condition_dim, output_channels)
         self.output = nn.Conv2d(
             output_channels, output_channels, kernel_size=3, padding=1
         )
+        self.output_norm = nn.BatchNorm2d(output_channels)
         self.skip = (
             nn.Identity()
             if input_channels == output_channels
@@ -29,10 +50,14 @@ class MiniatureResidualBlock(nn.Module):
     def forward(
         self, image: torch.Tensor, condition: torch.Tensor
     ) -> torch.Tensor:
-        hidden = self.input(image)
+        hidden = self.input_norm(self.input(image))
         hidden = hidden + self.condition(condition)[:, :, None, None]
-        hidden = F.relu(hidden)
-        return F.relu(self.skip(image) + self.output(hidden))
+        hidden = F.leaky_relu(hidden, negative_slope=0.1)
+        hidden = self.output_norm(self.output(hidden))
+        return F.leaky_relu(
+            self.skip(image) + hidden,
+            negative_slope=0.1,
+        )
 
 
 class MiniatureDownBlock(nn.Module):
@@ -84,10 +109,9 @@ class MiniatureConditionalUNet(nn.Module):
         self,
         character_count: int,
         font_count: int,
-        timesteps: int = 1000,
-        base_channels: int = 8,
+        base_channels: int = 16,
         channel_multipliers: tuple[int, ...] = (1, 2, 3),
-        condition_dim: int = 32,
+        condition_dim: int = 48,
     ) -> None:
         super().__init__()
         if len(channel_multipliers) < 2:
@@ -96,12 +120,17 @@ class MiniatureConditionalUNet(nn.Module):
         channels = [
             base_channels * multiplier for multiplier in channel_multipliers
         ]
-        self.time_embedding = nn.Embedding(timesteps, condition_dim)
+        self.condition_dim = condition_dim
+        self.time_mlp = nn.Sequential(
+            nn.Linear(condition_dim, condition_dim * 2),
+            nn.LeakyReLU(negative_slope=0.1),
+            nn.Linear(condition_dim * 2, condition_dim),
+        )
         self.character_embedding = nn.Embedding(character_count, condition_dim)
         self.font_embedding = nn.Embedding(font_count, condition_dim)
         self.condition = nn.Sequential(
             nn.Linear(condition_dim, condition_dim),
-            nn.ReLU(),
+            nn.LeakyReLU(negative_slope=0.1),
         )
         self.input = nn.Conv2d(1, channels[0], kernel_size=3, padding=1)
 
@@ -144,7 +173,9 @@ class MiniatureConditionalUNet(nn.Module):
         font_ids: torch.Tensor,
     ) -> torch.Tensor:
         condition = self.condition(
-            self.time_embedding(timesteps)
+            self.time_mlp(
+                miniature_timestep_embedding(timesteps, self.condition_dim)
+            )
             + self.character_embedding(characters)
             + self.font_embedding(font_ids)
         )

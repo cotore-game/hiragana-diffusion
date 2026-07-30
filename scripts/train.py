@@ -94,7 +94,7 @@ def main() -> None:
     if architecture == "standard":
         model_arguments["dropout"] = float(config["dropout"])
     elif architecture == "miniature":
-        model_arguments["timesteps"] = int(config["timesteps"])
+        pass
     else:
         raise ValueError(f"unknown model architecture: {architecture!r}")
 
